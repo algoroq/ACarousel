@@ -37,13 +37,15 @@ class ACarouselViewModel<Data, ID>: ObservableObject where Data : RandomAccessCo
     private let _autoScroll: ACarouselAutoScroll
     private let _canMove: Bool
     private let _useLazyHStack: Bool
+    private let _dragThresholdCoef: CGFloat
     
-    init(_ data: Data, id: KeyPath<Data.Element, ID>, index: Binding<Int>, spacing: CGFloat, headspace: CGFloat, sidesScaling: CGFloat, isWrap: Bool, autoScroll: ACarouselAutoScroll, canMove: Bool, useLazyHStack: Bool) {
+    init(_ data: Data, id: KeyPath<Data.Element, ID>, index: Binding<Int>, spacing: CGFloat, headspace: CGFloat, sidesScaling: CGFloat, isWrap: Bool, autoScroll: ACarouselAutoScroll, canMove: Bool, useLazyHStack: Bool, dragThresholdCoef: CGFloat) {
         
         guard index.wrappedValue < data.count else {
             fatalError("The index should be less than the count of data ")
         }
         
+        self._dragThresholdCoef = dragThresholdCoef
         self._useLazyHStack = useLazyHStack
         self._data = data
         self._dataId = id
@@ -107,8 +109,8 @@ class ACarouselViewModel<Data, ID>: ObservableObject where Data : RandomAccessCo
 @available(iOS 14.0, OSX 11.0, *)
 extension ACarouselViewModel where ID == Data.Element.ID, Data.Element : Identifiable {
     
-    convenience init(_ data: Data, index: Binding<Int>, spacing: CGFloat, headspace: CGFloat, sidesScaling: CGFloat, isWrap: Bool, autoScroll: ACarouselAutoScroll, canMove: Bool, useLazyHStack: Bool) {
-        self.init(data, id: \.id, index: index, spacing: spacing, headspace: headspace, sidesScaling: sidesScaling, isWrap: isWrap, autoScroll: autoScroll, canMove: canMove, useLazyHStack: useLazyHStack)
+    convenience init(_ data: Data, index: Binding<Int>, spacing: CGFloat, headspace: CGFloat, sidesScaling: CGFloat, isWrap: Bool, autoScroll: ACarouselAutoScroll, canMove: Bool, useLazyHStack: Bool, dragThresholdCoef: CGFloat) {
+        self.init(data, id: \.id, index: index, spacing: spacing, headspace: headspace, sidesScaling: sidesScaling, isWrap: isWrap, autoScroll: autoScroll, canMove: canMove, useLazyHStack: useLazyHStack, dragThresholdCoef: dragThresholdCoef)
     }
 }
 
@@ -138,6 +140,10 @@ extension ACarouselViewModel {
     
     var useLazyHStack: Bool {
         return _useLazyHStack
+    }
+    
+    var dragThresholdCoef: CGFloat {
+        return _dragThresholdCoef
     }
     
     var offsetAnimation: Animation? {
@@ -281,7 +287,7 @@ extension ACarouselViewModel {
         /// At the end of the drag, if the drag value exceeds the drag threshold,
         /// the active view will be toggled
         /// default is one third of subview
-        let dragThreshold: CGFloat = itemWidth / 3
+        let dragThreshold: CGFloat = itemWidth * dragThresholdCoef
         
         var activeIndex = self.activeIndex
         if value.translation.width > dragThreshold {

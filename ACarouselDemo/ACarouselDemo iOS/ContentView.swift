@@ -24,6 +24,7 @@ struct ContentView: View {
     @State var autoScroll: Bool = false
     @State var time: TimeInterval = 1
     @State var currentIndex: Int = 0
+    @State var dragThresholdCoef: CGFloat = 1/3
     
     var body: some View {
         VStack {
@@ -36,7 +37,8 @@ struct ContentView: View {
                       headspace: headspace,
                       sidesScaling: sidesScaling,
                       isWrap: isWrap,
-                      autoScroll: autoScroll ? .active(time) : .inactive) { name in
+                      autoScroll: autoScroll ? .active(time) : .inactive,
+                      dragThresholdCoef: dragThresholdCoef) { name in
                 Image(name)
                     .resizable()
                     .scaledToFill()
@@ -51,7 +53,8 @@ struct ContentView: View {
                          sidesScaling: $sidesScaling,
                          isWrap: $isWrap,
                          autoScroll: $autoScroll,
-                         duration: $time)
+                         duration: $time,
+                         dragThresholdCoef: $dragThresholdCoef)
             Spacer()
         }
     }
@@ -65,6 +68,7 @@ struct ControlPanel: View {
     @Binding var isWrap: Bool
     @Binding var autoScroll: Bool
     @Binding var duration: TimeInterval
+    @Binding var dragThresholdCoef: CGFloat
     
     var body: some View {
         VStack {
@@ -85,6 +89,10 @@ struct ControlPanel: View {
                     Toggle(isOn: $isWrap, label: {
                         Text("wrap: ").frame(width: 120)
                     })
+                }
+                HStack {
+                    Text("dragThreshold: ").frame(width: 120)
+                    Slider(value: $dragThresholdCoef, in: 0...1, minimumValueLabel: Text("0"), maximumValueLabel: Text("1")) { EmptyView() }
                 }
                 VStack {
                     HStack {
