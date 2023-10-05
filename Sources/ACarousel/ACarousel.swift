@@ -60,6 +60,7 @@ public struct ACarousel<Data, ID, Content> : View where Data : RandomAccessColle
             content($0)
                 .frame(width: viewModel.itemWidth)
                 .scaleEffect(x: 1, y: viewModel.itemScaling($0), anchor: .center)
+                .clipped()
         }
     }
 }
