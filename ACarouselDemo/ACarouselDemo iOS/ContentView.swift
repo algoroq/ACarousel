@@ -7,18 +7,45 @@
 
 import SwiftUI
 import ACarousel
+import SDWebImageSwiftUI
                
-struct Item: Identifiable {
-    let id = UUID()
-    let image: Image
+struct Item: Hashable {
+    var id: Int
 }
 
-let roles = ["Luffy", "Zoro", "Sanji", "Nami", "Usopp", "Chopper", "Robin", "Franky", "Brook"]
+let items = [Item(id: 200), Item(id: 202), Item(id: 203), Item(id: 204), Item(id: 206)]
+
+struct ListRow: View {
+    let id: Int
+    var url: String { "https://picsum.photos/id/\(id)/1800/2300" }
+    
+    init(id: Int) {
+//        print("Init ListRow \(id)")
+        self.id = id
+    }
+    var body: some View {
+        VStack {
+            WebImage(url: URL(string: url))
+                .onSuccess {_,_,_ in
+                    print("Load photo \(id)")
+                }
+                .onFailure {error in
+                    print(error)
+                }
+                .placeholder(content: {
+                    ProgressView()
+                })
+                .resizable()
+                .scaledToFill()
+                .transition(.fade(duration: 0.5))
+        }
+    }
+}
 
 struct ContentView: View {
     
-    @State var spacing: CGFloat = 10
-    @State var headspace: CGFloat = 10
+    @State var spacing: CGFloat = 0
+    @State var headspace: CGFloat = 0
     @State var sidesScaling: CGFloat = 0.8
     @State var isWrap: Bool = false
     @State var autoScroll: Bool = false
@@ -27,35 +54,51 @@ struct ContentView: View {
     @State var dragThresholdCoef: CGFloat = 1/3
     
     var body: some View {
-        VStack {
-            Text("\(currentIndex + 1)/\(roles.count)")
-            Spacer().frame(height: 40)
-            ACarousel(roles,
-                      id: \.self,
-                      index: $currentIndex,
-                      spacing: spacing,
-                      headspace: headspace,
-                      sidesScaling: sidesScaling,
-                      isWrap: isWrap,
-                      autoScroll: autoScroll ? .active(time) : .inactive,
-                      dragThresholdCoef: dragThresholdCoef) { name in
-                Image(name)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(height: 300)
-                    .cornerRadius(30)
+        GeometryReader { geometry in
+            VStack {
+//                VStack {
+//                    ScrollView(.horizontal) {
+//                        LazyHStack {
+//                            ForEach(items, id:\.id){ item in
+//                                ListRow(id: item.id)
+//                            }
+//                        }
+//                        .frame(height: 200, alignment: .center)
+//                    }
+//                }
+                
+                Text("\(currentIndex + 1)/\(items.count)")
+                Spacer().frame(height: 40)
+                ACarousel(items,
+                          id: \.id,
+                          index: $currentIndex,
+                          spacing: spacing,
+                          headspace: headspace,
+                          sidesScaling: sidesScaling,
+                          isWrap: isWrap,
+                          autoScroll: autoScroll ? .active(time) : .inactive,
+                          useLazyHStack: false,
+                          dragThresholdCoef: dragThresholdCoef) { item in
+                    if abs(currentIndex - items.firstIndex(of: item)!) < 2 {
+                        ListRow(id: item.id)
+                    } else {
+                        Rectangle()
+                    }
+                }
+                .padding(.all, 0)
+                .frame(height: 200)
+                
+                Spacer()
+                
+                ControlPanel(spacing: $spacing,
+                             headspace: $headspace,
+                             sidesScaling: $sidesScaling,
+                             isWrap: $isWrap,
+                             autoScroll: $autoScroll,
+                             duration: $time,
+                             dragThresholdCoef: $dragThresholdCoef)
+                Spacer()
             }
-            .frame(height: 300)
-            Spacer()
-            
-            ControlPanel(spacing: $spacing,
-                         headspace: $headspace,
-                         sidesScaling: $sidesScaling,
-                         isWrap: $isWrap,
-                         autoScroll: $autoScroll,
-                         duration: $time,
-                         dragThresholdCoef: $dragThresholdCoef)
-            Spacer()
         }
     }
 }
