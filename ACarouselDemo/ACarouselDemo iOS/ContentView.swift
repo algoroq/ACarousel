@@ -77,9 +77,10 @@ struct ContentView: View {
                           sidesScaling: sidesScaling,
                           isWrap: isWrap,
                           autoScroll: autoScroll ? .active(time) : .inactive,
-                          useLazyHStack: false,
-                          dragThresholdCoef: dragThresholdCoef) { item in
-                    if abs(currentIndex - items.firstIndex(of: item)!) < 2 {
+                          dragThresholdCoef: dragThresholdCoef,
+                          lazyLoadDistance: 2
+                ) { item, lazyLoaded in
+                    if lazyLoaded {
                         ListRow(id: item.id)
                     } else {
                         Rectangle()

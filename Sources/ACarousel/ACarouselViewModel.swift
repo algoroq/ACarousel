@@ -36,17 +36,18 @@ class ACarouselViewModel<Data, ID>: ObservableObject where Data : RandomAccessCo
     private let _sidesScaling: CGFloat
     private let _autoScroll: ACarouselAutoScroll
     private let _canMove: Bool
-    private let _useLazyHStack: Bool
     private let _dragThresholdCoef: CGFloat
     
-    init(_ data: Data, id: KeyPath<Data.Element, ID>, index: Binding<Int>, spacing: CGFloat, headspace: CGFloat, sidesScaling: CGFloat, isWrap: Bool, autoScroll: ACarouselAutoScroll, canMove: Bool, useLazyHStack: Bool, dragThresholdCoef: CGFloat) {
+    private let _lazyLoadDistance: Int
+    private var _lazyLoadCache: [ID:Bool]
+    
+    init(_ data: Data, id: KeyPath<Data.Element, ID>, index: Binding<Int>, spacing: CGFloat, headspace: CGFloat, sidesScaling: CGFloat, isWrap: Bool, autoScroll: ACarouselAutoScroll, canMove: Bool, dragThresholdCoef: CGFloat, lazyLoadDistance: Int) {
         
         guard index.wrappedValue < data.count else {
             fatalError("The index should be less than the count of data ")
         }
         
         self._dragThresholdCoef = dragThresholdCoef
-        self._useLazyHStack = useLazyHStack
         self._data = data
         self._dataId = id
         self._spacing = spacing
@@ -63,6 +64,9 @@ class ACarouselViewModel<Data, ID>: ObservableObject where Data : RandomAccessCo
         }
         
         self._index = index
+        
+        self._lazyLoadDistance = lazyLoadDistance
+        self._lazyLoadCache = [:]
     }
     
     
@@ -104,13 +108,30 @@ class ACarouselViewModel<Data, ID>: ObservableObject where Data : RandomAccessCo
         isTimerActive = active
     }
     
+    
+    
+    public func dataIdLazyLoaded(dataId: ID) -> Bool {
+        self._lazyLoadCache[dataId] ?? false
+    }
+    
+    public func setDataIdLazyLoaded(dataId: ID) {
+        self._lazyLoadCache[dataId] = true
+    }
+    
+    var lazyLoadDistance: Int {
+        _lazyLoadDistance
+    }
+    
+    var lazyLoadingEnabled: Bool {
+        _lazyLoadDistance >= 2
+    }
 }
 
 @available(iOS 14.0, OSX 11.0, *)
 extension ACarouselViewModel where ID == Data.Element.ID, Data.Element : Identifiable {
     
-    convenience init(_ data: Data, index: Binding<Int>, spacing: CGFloat, headspace: CGFloat, sidesScaling: CGFloat, isWrap: Bool, autoScroll: ACarouselAutoScroll, canMove: Bool, useLazyHStack: Bool, dragThresholdCoef: CGFloat) {
-        self.init(data, id: \.id, index: index, spacing: spacing, headspace: headspace, sidesScaling: sidesScaling, isWrap: isWrap, autoScroll: autoScroll, canMove: canMove, useLazyHStack: useLazyHStack, dragThresholdCoef: dragThresholdCoef)
+    convenience init(_ data: Data, index: Binding<Int>, spacing: CGFloat, headspace: CGFloat, sidesScaling: CGFloat, isWrap: Bool, autoScroll: ACarouselAutoScroll, canMove: Bool, useLazyHStack: Bool, dragThresholdCoef: CGFloat, lazyLoadDistance: Int) {
+        self.init(data, id: \.id, index: index, spacing: spacing, headspace: headspace, sidesScaling: sidesScaling, isWrap: isWrap, autoScroll: autoScroll, canMove: canMove, dragThresholdCoef: dragThresholdCoef, lazyLoadDistance: lazyLoadDistance)
     }
 }
 
@@ -136,10 +157,6 @@ extension ACarouselViewModel {
     
     var spacing: CGFloat {
         return _spacing
-    }
-    
-    var useLazyHStack: Bool {
-        return _useLazyHStack
     }
     
     var dragThresholdCoef: CGFloat {
