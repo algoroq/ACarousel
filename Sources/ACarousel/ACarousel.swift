@@ -5,10 +5,10 @@
  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  copies of the Software, and to permit persons to whom the Software is
  furnished to do so, subject to the following conditions:
-
+ 
  The above copyright notice and this permission notice shall be included in all
  copies or substantial portions of the Software.
-
+ 
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,11 +22,12 @@ import SwiftUI
 
 
 @available(iOS 14.0, OSX 11.0, *)
-public struct ACarousel<Data, ID, Content> : View where Data : RandomAccessCollection, ID : Hashable, Content : View {
+public struct ACarousel<Data, ID, Content, Suspending> : View where Data : RandomAccessCollection, ID : Hashable, Content : View, Suspending : View {
     
     @ObservedObject
     private var viewModel: ACarouselViewModel<Data, ID>
-    private let content: (Data.Element, Bool) -> Content
+    private let content: (Data.Element) -> Content
+    private let suspending: (Data.Element) -> Suspending
     
     public var body: some View {
         GeometryReader { proxy -> AnyView in
@@ -72,11 +73,17 @@ public struct ACarousel<Data, ID, Content> : View where Data : RandomAccessColle
     }
     
     private var mainContent: some View {
-        ForEach(viewModel.data, id: viewModel.dataId) {
-            content($0, isLazyLoaded(data: $0))
-                .frame(width: viewModel.itemWidth)
-                .scaleEffect(x: 1, y: viewModel.itemScaling($0), anchor: .center)
-                .clipped()
+        ForEach(viewModel.data, id: viewModel.dataId) { item in
+            Group {
+                if isLazyLoaded(data: item) {
+                    content(item)
+                } else {
+                    suspending(item)
+                }
+            }
+            .frame(width: viewModel.itemWidth)
+            .scaleEffect(x: 1, y: viewModel.itemScaling(item), anchor: .center)
+            .clipped()
         }
     }
 }
@@ -87,7 +94,7 @@ public struct ACarousel<Data, ID, Content> : View where Data : RandomAccessColle
 
 // without lazy loading
 @available(iOS 14.0, OSX 11.0, *)
-extension ACarousel {
+extension ACarousel where Suspending == Content {
     
     /// Creates an instance that uniquely identifies and creates views across
     /// updates based on the identity of the underlying data.
@@ -109,7 +116,9 @@ extension ACarousel {
         
         self.viewModel = ACarouselViewModel(data, id: id, index: index, spacing: spacing, headspace: headspace, sidesScaling: sidesScaling, isWrap: isWrap, autoScroll: autoScroll, canMove: canMove, dragThresholdCoef: dragThresholdCoef, lazyLoadDistance: -1)
         
-        self.content =  { el, _ in content(el) } // ignore lazy loading
+        // ignore lazy loading
+        self.content = { item in content(item) }
+        self.suspending = { item in content(item) }
     }
 }
 
@@ -135,17 +144,19 @@ extension ACarousel {
     ///     ``ACarouselAutoScroll``. default is `inactive`.
     ///   - lazyLoadDistance: distance to lazy load neighbour views, has to be >= 2 otherwise is ignored
     ///   - content: The view builder that creates views dynamically.
-    public init(_ data: Data, id: KeyPath<Data.Element, ID>, index: Binding<Int> = .constant(0), spacing: CGFloat = 10, headspace: CGFloat = 10, sidesScaling: CGFloat = 0.8, isWrap: Bool = false, autoScroll: ACarouselAutoScroll = .inactive, canMove: Bool = true, dragThresholdCoef: CGFloat = 1/3, lazyLoadDistance: Int = 2, @ViewBuilder content: @escaping (Data.Element, Bool) -> Content) {
+    public init(_ data: Data, id: KeyPath<Data.Element, ID>, index: Binding<Int> = .constant(0), spacing: CGFloat = 10, headspace: CGFloat = 10, sidesScaling: CGFloat = 0.8, isWrap: Bool = false, autoScroll: ACarouselAutoScroll = .inactive, canMove: Bool = true, dragThresholdCoef: CGFloat = 1/3, lazyLoadDistance: Int = 2, @ViewBuilder content: @escaping (Data.Element) -> Content, @ViewBuilder suspending: @escaping (Data.Element) -> Suspending) {
         
         self.viewModel = ACarouselViewModel(data, id: id, index: index, spacing: spacing, headspace: headspace, sidesScaling: sidesScaling, isWrap: isWrap, autoScroll: autoScroll, canMove: canMove, dragThresholdCoef: dragThresholdCoef, lazyLoadDistance: lazyLoadDistance)
+        
         self.content = content
+        self.suspending = suspending
     }
 }
 
 
 // without lazy loading
 @available(iOS 14.0, OSX 11.0, *)
-extension ACarousel where ID == Data.Element.ID, Data.Element : Identifiable {
+extension ACarousel where ID == Data.Element.ID, Data.Element : Identifiable, Suspending == Content{
     
     /// Creates an instance that uniquely identifies and creates views across
     /// updates based on the identity of the underlying data.
@@ -167,7 +178,9 @@ extension ACarousel where ID == Data.Element.ID, Data.Element : Identifiable {
         
         self.viewModel = ACarouselViewModel(data, id: \.id, index: index, spacing: spacing, headspace: headspace, sidesScaling: sidesScaling, isWrap: isWrap, autoScroll: autoScroll, canMove: canMove, dragThresholdCoef: dragThresholdCoef, lazyLoadDistance: -1)
         
-        self.content =  { el, _ in content(el) } // ignore lazy loading
+        // ignore lazy loading
+        self.content = { item in content(item) }
+        self.suspending = { item in content(item) }
     }
 }
 
@@ -191,10 +204,12 @@ extension ACarousel where ID == Data.Element.ID, Data.Element : Identifiable {
     ///     ``ACarouselAutoScroll``. default is `inactive`.
     ///   - lazyLoadDistance: distance to lazy load neighbour views, has to be >= 2 otherwise is ignored
     ///   - content: The view builder that creates views dynamically.
-    public init(_ data: Data, index: Binding<Int> = .constant(0), spacing: CGFloat = 10, headspace: CGFloat = 10, sidesScaling: CGFloat = 0.8, isWrap: Bool = false, autoScroll: ACarouselAutoScroll = .inactive, canMove: Bool = true, dragThresholdCoef: CGFloat = 1/3, lazyLoadDistance: Int = 2, @ViewBuilder content: @escaping (Data.Element, Bool) -> Content) {
+    public init(_ data: Data, index: Binding<Int> = .constant(0), spacing: CGFloat = 10, headspace: CGFloat = 10, sidesScaling: CGFloat = 0.8, isWrap: Bool = false, autoScroll: ACarouselAutoScroll = .inactive, canMove: Bool = true, dragThresholdCoef: CGFloat = 1/3, lazyLoadDistance: Int = 2, @ViewBuilder content: @escaping (Data.Element) -> Content, @ViewBuilder suspending: @escaping (Data.Element) -> Suspending) {
         
         self.viewModel = ACarouselViewModel(data, id: \.id, index: index, spacing: spacing, headspace: headspace, sidesScaling: sidesScaling, isWrap: isWrap, autoScroll: autoScroll, canMove: canMove, dragThresholdCoef: dragThresholdCoef, lazyLoadDistance: lazyLoadDistance)
+        
         self.content = content
+        self.suspending = suspending
     }
 }
 
@@ -204,10 +219,10 @@ struct ACarousel_LibraryContent: LibraryContentProvider {
     let Datas = Array(repeating: _Item(color: .red), count: 3)
     @LibraryContentBuilder
     var views: [LibraryItem] {
-        LibraryItem(ACarousel(Datas) { _,_  in }, title: "ACarousel", category: .control)
-        LibraryItem(ACarousel(Datas, index: .constant(0), spacing: 10, headspace: 10, sidesScaling: 0.8, isWrap: false, autoScroll: .inactive) { _, _ in }, title: "ACarousel full parameters", category: .control)
+        LibraryItem(ACarousel(Datas) { _  in }, title: "ACarousel", category: .control)
+        LibraryItem(ACarousel(Datas, index: .constant(0), spacing: 10, headspace: 10, sidesScaling: 0.8, isWrap: false, autoScroll: .inactive) { _ in }, title: "ACarousel full parameters", category: .control)
     }
-
+    
     struct _Item: Identifiable {
         let id = UUID()
         let color: Color

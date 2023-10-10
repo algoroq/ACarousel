@@ -8,7 +8,7 @@
 import SwiftUI
 import ACarousel
 import SDWebImageSwiftUI
-               
+
 struct Item: Hashable {
     var id: Int
 }
@@ -20,7 +20,7 @@ struct ListRow: View {
     var url: String { "https://picsum.photos/id/\(id)/1800/2300" }
     
     init(id: Int) {
-//        print("Init ListRow \(id)")
+        //        print("Init ListRow \(id)")
         self.id = id
     }
     var body: some View {
@@ -56,16 +56,16 @@ struct ContentView: View {
     var body: some View {
         GeometryReader { geometry in
             VStack {
-//                VStack {
-//                    ScrollView(.horizontal) {
-//                        LazyHStack {
-//                            ForEach(items, id:\.id){ item in
-//                                ListRow(id: item.id)
-//                            }
-//                        }
-//                        .frame(height: 200, alignment: .center)
-//                    }
-//                }
+                //                VStack {
+                //                    ScrollView(.horizontal) {
+                //                        LazyHStack {
+                //                            ForEach(items, id:\.id){ item in
+                //                                ListRow(id: item.id)
+                //                            }
+                //                        }
+                //                        .frame(height: 200, alignment: .center)
+                //                    }
+                //                }
                 
                 Text("\(currentIndex + 1)/\(items.count)")
                 Spacer().frame(height: 40)
@@ -78,14 +78,14 @@ struct ContentView: View {
                           isWrap: isWrap,
                           autoScroll: autoScroll ? .active(time) : .inactive,
                           dragThresholdCoef: dragThresholdCoef,
-                          lazyLoadDistance: 2
-                ) { item, lazyLoaded in
-                    if lazyLoaded {
-                        ListRow(id: item.id)
-                    } else {
-                        Rectangle()
-                    }
-                }
+                          lazyLoadDistance: 2,
+                          content: { item in
+                            ListRow(id: item.id)
+                        },
+                          suspending: { item in
+                            Rectangle()
+                        }
+                )
                 .padding(.all, 0)
                 .frame(height: 200)
                 
