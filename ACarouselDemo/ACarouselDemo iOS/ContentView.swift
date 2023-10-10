@@ -68,6 +68,7 @@ struct ContentView: View {
                 //                }
                 
                 Text("\(currentIndex + 1)/\(items.count)")
+                
                 Spacer().frame(height: 40)
                 ACarousel(items,
                           id: \.id,

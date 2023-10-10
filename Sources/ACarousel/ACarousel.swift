@@ -29,11 +29,15 @@ public struct ACarousel<Data, ID, Content, Suspending> : View where Data : Rando
     private let content: (Data.Element) -> Content
     private let suspending: (Data.Element) -> Suspending
     
+    @State
+    private var lazyLoadCache: [ID:Bool]
+    
     public var body: some View {
         GeometryReader { proxy -> AnyView in
             viewModel.viewSize = proxy.size
             return AnyView(generateContent(proxy: proxy))
-        }.clipped()
+        }
+        .clipped()
     }
     
     private func generateContent(proxy: GeometryProxy) -> some View {
@@ -56,7 +60,7 @@ public struct ACarousel<Data, ID, Content, Suspending> : View where Data : Rando
         
         // check if element was ever lazy loaded (lazy load cache)
         let dataId = data[keyPath: viewModel.dataId]
-        if viewModel.dataIdLazyLoaded(dataId: dataId) { return true }
+        if self.dataIdLazyLoaded(dataId: dataId) { return true }
         
         // extract indices from RAC
         guard let index = viewModel.data.firstIndex(where: { $0[keyPath: viewModel.dataId] == dataId }) else { return false }
@@ -65,7 +69,7 @@ public struct ACarousel<Data, ID, Content, Suspending> : View where Data : Rando
         
         // check if data element falls into current lazy loading range
         if abs(distance) < viewModel.lazyLoadDistance {
-            viewModel.setDataIdLazyLoaded(dataId: dataId)
+            self.setDataIdLazyLoaded(dataId: dataId)
             return true
         }
         
@@ -84,6 +88,20 @@ public struct ACarousel<Data, ID, Content, Suspending> : View where Data : Rando
             .frame(width: viewModel.itemWidth)
             .scaleEffect(x: 1, y: viewModel.itemScaling(item), anchor: .center)
             .clipped()
+        }
+    }
+}
+
+@available(iOS 14.0, OSX 11.0, *)
+extension ACarousel {
+    private func dataIdLazyLoaded(dataId: ID) -> Bool {
+        self.lazyLoadCache[dataId] ?? false
+    }
+    
+    private func setDataIdLazyLoaded(dataId: ID) {
+        // needs to be called from main queue, because functions called by view are pure functions!
+        DispatchQueue.main.async {
+            self.lazyLoadCache[dataId] = true
         }
     }
 }
@@ -119,6 +137,8 @@ extension ACarousel where Suspending == Content {
         // ignore lazy loading
         self.content = { item in content(item) }
         self.suspending = { item in content(item) }
+        
+        _lazyLoadCache = State(initialValue: [:])
     }
 }
 
@@ -150,6 +170,8 @@ extension ACarousel {
         
         self.content = content
         self.suspending = suspending
+        
+        _lazyLoadCache = State(initialValue: [:])
     }
 }
 
@@ -181,6 +203,8 @@ extension ACarousel where ID == Data.Element.ID, Data.Element : Identifiable, Su
         // ignore lazy loading
         self.content = { item in content(item) }
         self.suspending = { item in content(item) }
+        
+        _lazyLoadCache = State(initialValue: [:])
     }
 }
 
@@ -210,6 +234,8 @@ extension ACarousel where ID == Data.Element.ID, Data.Element : Identifiable {
         
         self.content = content
         self.suspending = suspending
+        
+        _lazyLoadCache = State(initialValue: [:])
     }
 }
 

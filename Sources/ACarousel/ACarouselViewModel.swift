@@ -39,7 +39,6 @@ class ACarouselViewModel<Data, ID>: ObservableObject where Data : RandomAccessCo
     private let _dragThresholdCoef: CGFloat
     
     private let _lazyLoadDistance: Int
-    private var _lazyLoadCache: [ID:Bool]
     
     init(_ data: Data, id: KeyPath<Data.Element, ID>, index: Binding<Int>, spacing: CGFloat, headspace: CGFloat, sidesScaling: CGFloat, isWrap: Bool, autoScroll: ACarouselAutoScroll, canMove: Bool, dragThresholdCoef: CGFloat, lazyLoadDistance: Int) {
         
@@ -66,7 +65,6 @@ class ACarouselViewModel<Data, ID>: ObservableObject where Data : RandomAccessCo
         self._index = index
         
         self._lazyLoadDistance = lazyLoadDistance
-        self._lazyLoadCache = [:]
     }
     
     
@@ -106,16 +104,6 @@ class ACarouselViewModel<Data, ID>: ObservableObject where Data : RandomAccessCo
     private var isTimerActive = true
     func setTimerActive(_ active: Bool) {
         isTimerActive = active
-    }
-    
-    
-    
-    public func dataIdLazyLoaded(dataId: ID) -> Bool {
-        self._lazyLoadCache[dataId] ?? false
-    }
-    
-    public func setDataIdLazyLoaded(dataId: ID) {
-        self._lazyLoadCache[dataId] = true
     }
     
     var lazyLoadDistance: Int {
