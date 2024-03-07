@@ -24,7 +24,7 @@ struct ListRow: View {
         self.id = id
     }
     var body: some View {
-        VStack {
+        ZStack(alignment: .center) {
             WebImage(url: URL(string: url))
                 .onSuccess {_,_,_ in
                     print("Load photo \(id)")
@@ -38,6 +38,12 @@ struct ListRow: View {
                 .resizable()
                 .scaledToFill()
                 .transition(.fade(duration: 0.5))
+            
+            Button("DRAG BUTTON") {
+                print("Button click")
+            }
+            .padding(.all, 20)
+            .background(Color.white)
         }
     }
 }
@@ -79,6 +85,7 @@ struct ContentView: View {
                           isWrap: isWrap,
                           autoScroll: autoScroll ? .active(time) : .inactive,
                           dragThresholdCoef: dragThresholdCoef,
+                          gestureRecognizer: .highPriority(),
                           lazyLoadDistance: 2,
                           content: { item in
                             ListRow(id: item.id)

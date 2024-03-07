@@ -48,7 +48,9 @@ public struct ACarousel<Data, ID, Content, Suspending> : View where Data : Rando
         }
         .frame(width: proxy.size.width, height: proxy.size.height, alignment: .leading)
         .offset(x: viewModel.offset)
-        .gesture(viewModel.dragGesture)
+        .modifier(ACarouselGestureRecognizerModifier(
+            gestureRecognizer: viewModel.gestureRecognizer,
+            gesture: viewModel.dragGesture))
         .animation(viewModel.offsetAnimation, value: viewModel.offset)
         .onReceive(timer: viewModel.timer, perform: viewModel.receiveTimer)
         .onReceiveAppLifeCycle(perform: viewModel.setTimerActive)
@@ -130,9 +132,9 @@ extension ACarousel where Suspending == Content {
     ///   - autoScroll: A enum that define view to scroll automatically. See
     ///     ``ACarouselAutoScroll``. default is `inactive`.
     ///   - content: The view builder that creates views dynamically.
-    public init(_ data: Data, id: KeyPath<Data.Element, ID>, index: Binding<Int> = .constant(0), spacing: CGFloat = 10, headspace: CGFloat = 10, sidesScaling: CGFloat = 0.8, isWrap: Bool = false, autoScroll: ACarouselAutoScroll = .inactive, canMove: Bool = true, dragThresholdCoef: CGFloat = 1/3, @ViewBuilder content: @escaping (Data.Element) -> Content) {
+    public init(_ data: Data, id: KeyPath<Data.Element, ID>, index: Binding<Int> = .constant(0), spacing: CGFloat = 10, headspace: CGFloat = 10, sidesScaling: CGFloat = 0.8, isWrap: Bool = false, autoScroll: ACarouselAutoScroll = .inactive, canMove: Bool = true, dragThresholdCoef: CGFloat = 1/3, gestureRecognizer: ACarouselGestureRecognizer = .simple, @ViewBuilder content: @escaping (Data.Element) -> Content) {
         
-        self.viewModel = ACarouselViewModel(data, id: id, index: index, spacing: spacing, headspace: headspace, sidesScaling: sidesScaling, isWrap: isWrap, autoScroll: autoScroll, canMove: canMove, dragThresholdCoef: dragThresholdCoef, lazyLoadDistance: -1)
+        self.viewModel = ACarouselViewModel(data, id: id, index: index, spacing: spacing, headspace: headspace, sidesScaling: sidesScaling, isWrap: isWrap, autoScroll: autoScroll, canMove: canMove, dragThresholdCoef: dragThresholdCoef, gestureRecognizer: gestureRecognizer, lazyLoadDistance: -1)
         
         // ignore lazy loading
         self.content = { item in content(item) }
@@ -164,9 +166,9 @@ extension ACarousel {
     ///     ``ACarouselAutoScroll``. default is `inactive`.
     ///   - lazyLoadDistance: distance to lazy load neighbour views, has to be >= 2 otherwise is ignored
     ///   - content: The view builder that creates views dynamically.
-    public init(_ data: Data, id: KeyPath<Data.Element, ID>, index: Binding<Int> = .constant(0), spacing: CGFloat = 10, headspace: CGFloat = 10, sidesScaling: CGFloat = 0.8, isWrap: Bool = false, autoScroll: ACarouselAutoScroll = .inactive, canMove: Bool = true, dragThresholdCoef: CGFloat = 1/3, lazyLoadDistance: Int = 2, @ViewBuilder content: @escaping (Data.Element) -> Content, @ViewBuilder suspending: @escaping (Data.Element) -> Suspending) {
+    public init(_ data: Data, id: KeyPath<Data.Element, ID>, index: Binding<Int> = .constant(0), spacing: CGFloat = 10, headspace: CGFloat = 10, sidesScaling: CGFloat = 0.8, isWrap: Bool = false, autoScroll: ACarouselAutoScroll = .inactive, canMove: Bool = true, dragThresholdCoef: CGFloat = 1/3, gestureRecognizer: ACarouselGestureRecognizer = .simple, lazyLoadDistance: Int = 2, @ViewBuilder content: @escaping (Data.Element) -> Content, @ViewBuilder suspending: @escaping (Data.Element) -> Suspending) {
         
-        self.viewModel = ACarouselViewModel(data, id: id, index: index, spacing: spacing, headspace: headspace, sidesScaling: sidesScaling, isWrap: isWrap, autoScroll: autoScroll, canMove: canMove, dragThresholdCoef: dragThresholdCoef, lazyLoadDistance: lazyLoadDistance)
+        self.viewModel = ACarouselViewModel(data, id: id, index: index, spacing: spacing, headspace: headspace, sidesScaling: sidesScaling, isWrap: isWrap, autoScroll: autoScroll, canMove: canMove, dragThresholdCoef: dragThresholdCoef, gestureRecognizer: gestureRecognizer, lazyLoadDistance: lazyLoadDistance)
         
         self.content = content
         self.suspending = suspending
@@ -196,9 +198,9 @@ extension ACarousel where ID == Data.Element.ID, Data.Element : Identifiable, Su
     ///     ``ACarouselAutoScroll``. default is `inactive`.
     ///   - lazyLoadDistance: distance to lazy load neighbour views, has to be >= 2 otherwise is ignored
     ///   - content: The view builder that creates views dynamically.
-    public init(_ data: Data, index: Binding<Int> = .constant(0), spacing: CGFloat = 10, headspace: CGFloat = 10, sidesScaling: CGFloat = 0.8, isWrap: Bool = false, autoScroll: ACarouselAutoScroll = .inactive, canMove: Bool = true, dragThresholdCoef: CGFloat = 1/3, @ViewBuilder content: @escaping (Data.Element) -> Content) {
+    public init(_ data: Data, index: Binding<Int> = .constant(0), spacing: CGFloat = 10, headspace: CGFloat = 10, sidesScaling: CGFloat = 0.8, isWrap: Bool = false, autoScroll: ACarouselAutoScroll = .inactive, canMove: Bool = true, dragThresholdCoef: CGFloat = 1/3, gestureRecognizer: ACarouselGestureRecognizer = .simple, @ViewBuilder content: @escaping (Data.Element) -> Content) {
         
-        self.viewModel = ACarouselViewModel(data, id: \.id, index: index, spacing: spacing, headspace: headspace, sidesScaling: sidesScaling, isWrap: isWrap, autoScroll: autoScroll, canMove: canMove, dragThresholdCoef: dragThresholdCoef, lazyLoadDistance: -1)
+        self.viewModel = ACarouselViewModel(data, id: \.id, index: index, spacing: spacing, headspace: headspace, sidesScaling: sidesScaling, isWrap: isWrap, autoScroll: autoScroll, canMove: canMove, dragThresholdCoef: dragThresholdCoef, gestureRecognizer: gestureRecognizer, lazyLoadDistance: -1)
         
         // ignore lazy loading
         self.content = { item in content(item) }
@@ -228,9 +230,9 @@ extension ACarousel where ID == Data.Element.ID, Data.Element : Identifiable {
     ///     ``ACarouselAutoScroll``. default is `inactive`.
     ///   - lazyLoadDistance: distance to lazy load neighbour views, has to be >= 2 otherwise is ignored
     ///   - content: The view builder that creates views dynamically.
-    public init(_ data: Data, index: Binding<Int> = .constant(0), spacing: CGFloat = 10, headspace: CGFloat = 10, sidesScaling: CGFloat = 0.8, isWrap: Bool = false, autoScroll: ACarouselAutoScroll = .inactive, canMove: Bool = true, dragThresholdCoef: CGFloat = 1/3, lazyLoadDistance: Int = 2, @ViewBuilder content: @escaping (Data.Element) -> Content, @ViewBuilder suspending: @escaping (Data.Element) -> Suspending) {
+    public init(_ data: Data, index: Binding<Int> = .constant(0), spacing: CGFloat = 10, headspace: CGFloat = 10, sidesScaling: CGFloat = 0.8, isWrap: Bool = false, autoScroll: ACarouselAutoScroll = .inactive, canMove: Bool = true, dragThresholdCoef: CGFloat = 1/3, gestureRecognizer: ACarouselGestureRecognizer = .simple, lazyLoadDistance: Int = 2, @ViewBuilder content: @escaping (Data.Element) -> Content, @ViewBuilder suspending: @escaping (Data.Element) -> Suspending) {
         
-        self.viewModel = ACarouselViewModel(data, id: \.id, index: index, spacing: spacing, headspace: headspace, sidesScaling: sidesScaling, isWrap: isWrap, autoScroll: autoScroll, canMove: canMove, dragThresholdCoef: dragThresholdCoef, lazyLoadDistance: lazyLoadDistance)
+        self.viewModel = ACarouselViewModel(data, id: \.id, index: index, spacing: spacing, headspace: headspace, sidesScaling: sidesScaling, isWrap: isWrap, autoScroll: autoScroll, canMove: canMove, dragThresholdCoef: dragThresholdCoef, gestureRecognizer: gestureRecognizer, lazyLoadDistance: lazyLoadDistance)
         
         self.content = content
         self.suspending = suspending

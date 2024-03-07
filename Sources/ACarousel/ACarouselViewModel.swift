@@ -5,10 +5,10 @@
  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  copies of the Software, and to permit persons to whom the Software is
  furnished to do so, subject to the following conditions:
-
+ 
  The above copyright notice and this permission notice shall be included in all
  copies or substantial portions of the Software.
-
+ 
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,7 +23,6 @@ import Combine
 
 @available(iOS 14.0, OSX 11.0, *)
 class ACarouselViewModel<Data, ID>: ObservableObject where Data : RandomAccessCollection, ID : Hashable {
-    
     /// external index
     @Binding
     private var index: Int
@@ -39,8 +38,9 @@ class ACarouselViewModel<Data, ID>: ObservableObject where Data : RandomAccessCo
     private let _dragThresholdCoef: CGFloat
     
     private let _lazyLoadDistance: Int
+    private let _gestureRecognizer: ACarouselGestureRecognizer
     
-    init(_ data: Data, id: KeyPath<Data.Element, ID>, index: Binding<Int>, spacing: CGFloat, headspace: CGFloat, sidesScaling: CGFloat, isWrap: Bool, autoScroll: ACarouselAutoScroll, canMove: Bool, dragThresholdCoef: CGFloat, lazyLoadDistance: Int) {
+    init(_ data: Data, id: KeyPath<Data.Element, ID>, index: Binding<Int>, spacing: CGFloat, headspace: CGFloat, sidesScaling: CGFloat, isWrap: Bool, autoScroll: ACarouselAutoScroll, canMove: Bool, dragThresholdCoef: CGFloat, gestureRecognizer: ACarouselGestureRecognizer, lazyLoadDistance: Int) {
         
         guard index.wrappedValue < data.count else {
             fatalError("The index should be less than the count of data ")
@@ -65,6 +65,7 @@ class ACarouselViewModel<Data, ID>: ObservableObject where Data : RandomAccessCo
         self._index = index
         
         self._lazyLoadDistance = lazyLoadDistance
+        self._gestureRecognizer = gestureRecognizer
     }
     
     
@@ -113,13 +114,17 @@ class ACarouselViewModel<Data, ID>: ObservableObject where Data : RandomAccessCo
     var lazyLoadingEnabled: Bool {
         _lazyLoadDistance >= 2
     }
+    
+    var gestureRecognizer: ACarouselGestureRecognizer {
+        _gestureRecognizer
+    }
 }
 
 @available(iOS 14.0, OSX 11.0, *)
 extension ACarouselViewModel where ID == Data.Element.ID, Data.Element : Identifiable {
     
-    convenience init(_ data: Data, index: Binding<Int>, spacing: CGFloat, headspace: CGFloat, sidesScaling: CGFloat, isWrap: Bool, autoScroll: ACarouselAutoScroll, canMove: Bool, useLazyHStack: Bool, dragThresholdCoef: CGFloat, lazyLoadDistance: Int) {
-        self.init(data, id: \.id, index: index, spacing: spacing, headspace: headspace, sidesScaling: sidesScaling, isWrap: isWrap, autoScroll: autoScroll, canMove: canMove, dragThresholdCoef: dragThresholdCoef, lazyLoadDistance: lazyLoadDistance)
+    convenience init(_ data: Data, index: Binding<Int>, spacing: CGFloat, headspace: CGFloat, sidesScaling: CGFloat, isWrap: Bool, autoScroll: ACarouselAutoScroll, canMove: Bool, useLazyHStack: Bool, dragThresholdCoef: CGFloat, gestureRecognizer: ACarouselGestureRecognizer, lazyLoadDistance: Int) {
+        self.init(data, id: \.id, index: index, spacing: spacing, headspace: headspace, sidesScaling: sidesScaling, isWrap: isWrap, autoScroll: autoScroll, canMove: canMove, dragThresholdCoef: dragThresholdCoef, gestureRecognizer: gestureRecognizer, lazyLoadDistance: lazyLoadDistance)
     }
 }
 
@@ -350,11 +355,11 @@ extension ACarouselViewModel {
 
 @available(iOS 14.0, OSX 11.0, *)
 private extension UserDefaults {
-
+    
     private struct Keys {
         static let isAnimatedOffset = "isAnimatedOffset"
     }
-
+    
     static var isAnimatedOffset: Bool {
         get {
             return UserDefaults.standard.bool(forKey: Keys.isAnimatedOffset)
