@@ -22,7 +22,7 @@ import SwiftUI
 import Combine
 
 @available(iOS 14.0, OSX 11.0, *)
-class ACarouselViewModel<Data, ID>: ObservableObject where Data : RandomAccessCollection, ID : Hashable {
+public class ACarouselViewModel<Data, ID>: ObservableObject where Data : RandomAccessCollection, ID : Hashable {
     /// external index
     @Binding
     private var index: Int
