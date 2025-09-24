@@ -8,11 +8,13 @@
 import Foundation
 import SwiftUI
 
+
 public enum ACarouselGestureRecognizer {
     case simple
     case simultaneous(mask: GestureMask = .all)
     case highPriority(mask: GestureMask = .all)
     
+    /*
     func apply(to: some View, gesture: any Gesture) -> any View {
         switch self {
         case .simple:
@@ -23,13 +25,18 @@ public enum ACarouselGestureRecognizer {
             return to.highPriorityGesture(gesture, including: mask)
         }
     }
+     */
 }
 
-struct ACarouselGestureRecognizerModifier: ViewModifier {
-    var gestureRecognizer: ACarouselGestureRecognizer
-    var gesture: any Gesture
+@available(iOS 14.0, OSX 11.0, *)
+struct ACarouselGestureRecognizerModifier<Data, ID>: ViewModifier where Data : RandomAccessCollection, ID : Hashable  {
+    
+    //var gestureRecognizer: ACarouselGestureRecognizer
+    //var gesture: any Gesture
+    
+    var model: ACarouselViewModel<Data, ID>
     
     func body(content: Content) -> some View {
-        AnyView(gestureRecognizer.apply(to: content, gesture: gesture))
+        AnyView(model.applyDragGesture(content: content))
     }
 }

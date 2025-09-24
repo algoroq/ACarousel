@@ -48,9 +48,12 @@ public struct ACarousel<Data, ID, Content, Suspending> : View where Data : Rando
         }
         .frame(width: proxy.size.width, height: proxy.size.height, alignment: .leading)
         .offset(x: viewModel.offset)
+        /*
         .modifier(ACarouselGestureRecognizerModifier(
             gestureRecognizer: viewModel.gestureRecognizer,
             gesture: viewModel.dragGesture))
+         */
+        .modifier(ACarouselGestureRecognizerModifier(model: viewModel))
         .animation(viewModel.offsetAnimation, value: viewModel.offset)
         .onReceive(timer: viewModel.timer, perform: viewModel.receiveTimer)
         .onReceiveAppLifeCycle(perform: viewModel.setTimerActive)

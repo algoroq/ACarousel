@@ -252,17 +252,73 @@ extension ACarouselViewModel {
     }
 }
 
+
+
+
 @available(iOS 14.0, OSX 11.0, *)
 // MARK: - Drag Gesture
 extension ACarouselViewModel {
+    
+    
+    func applyDragGesture<Content: View>(content: Content) -> any View {
+        switch self.gestureRecognizer {
+        case .simple:
+            return content.gesture(DragGesture().onChanged(handleDragChanged).onEnded(handleDragEnded))
+        case let .simultaneous(mask):
+            if #available(iOS 18, *) {
+                return content.gesture(SimultaneousSwipeGesture(
+                    onChanged: handleSwipeChanged,
+                    onEnded: handleSwipeEnded
+                ))
+            } else {
+                return content.simultaneousGesture(DragGesture().onChanged(handleDragChanged).onEnded(handleDragEnded))
+            }
+        case let .highPriority(mask):
+            return content.highPriorityGesture(DragGesture().onChanged(handleDragChanged).onEnded(handleDragEnded))
+        }
+    }
+    
+    /*
     /// drag gesture of view
-    var dragGesture: some Gesture {
+    var dragGesture: ACarouselGesture {
+        /*
         DragGesture()
             .onChanged(dragChanged)
             .onEnded(dragEnded)
+         */
+        
+        if #available(iOS 18, *) {
+            return SimultaneousSwipeGesture(
+                onChanged: handleSwipeChanged,
+                onEnded: handleSwipeEnded
+            )
+        } else {
+            return .gesture(DragGesture()
+                .onChanged(handleDragChanged)
+                .onEnded(handleDragEnded))
+        }
+    }
+     */
+    
+    
+    private func handleSwipeChanged(_ recognizer: UILongPressGestureRecognizer, _ translation: CGSize) {
+        dragChanged(translation: translation)
     }
     
-    private func dragChanged(_ value: DragGesture.Value) {
+    private func handleSwipeEnded(_ recognizer: UILongPressGestureRecognizer, _ translation: CGSize) {
+        dragEnded(translation: translation)
+    }
+    
+    private func handleDragChanged(_ gesture: DragGesture.Value) {
+        dragChanged(translation: gesture.translation)
+    }
+    
+    private func handleDragEnded(_ gesture: DragGesture.Value) {
+        dragEnded(translation: gesture.translation)
+    }
+
+    
+    private func dragChanged(translation: CGSize) {
         guard _canMove else { return }
         
         isAnimatedOffset = true
@@ -271,10 +327,10 @@ extension ACarouselViewModel {
         /// Avoid dragging more than the values of multiple subviews at the end of the drag,
         /// and still only one subview is toggled
         var offset: CGFloat = itemActualWidth
-        if value.translation.width > 0 {
-            offset = min(offset, value.translation.width)
+        if translation.width > 0 {
+            offset = min(offset, translation.width)
         } else {
-            offset = max(-offset, value.translation.width)
+            offset = max(-offset, translation.width)
         }
         
         /// set drag offset
@@ -284,7 +340,7 @@ extension ACarouselViewModel {
         isTimerActive = false
     }
     
-    private func dragEnded(_ value: DragGesture.Value) {
+    private func dragEnded(translation: CGSize) {
         guard _canMove else { return }
         /// reset drag offset
         dragOffset = .zero
@@ -300,15 +356,94 @@ extension ACarouselViewModel {
         let dragThreshold: CGFloat = itemWidth * dragThresholdCoef
         
         var activeIndex = self.activeIndex
-        if value.translation.width > dragThreshold {
+        if translation.width > dragThreshold {
             activeIndex -= 1
         }
-        if value.translation.width < -dragThreshold {
+        if translation.width < -dragThreshold {
             activeIndex += 1
         }
         self.activeIndex = max(0, min(activeIndex, data.count - 1))
     }
 }
+
+
+@available(iOS 18.0, * )
+struct SimultaneousSwipeGesture: UIGestureRecognizerRepresentable {
+    
+    let onBegan: (UILongPressGestureRecognizer) -> Void
+    let onChanged: (UILongPressGestureRecognizer, CGSize) -> Void
+    let onEnded: (UILongPressGestureRecognizer, CGSize) -> Void
+
+    init(
+        onBegan: @escaping (UILongPressGestureRecognizer) -> Void = { _ in },
+        onChanged: @escaping (UILongPressGestureRecognizer, CGSize) -> Void = { _, _ in },
+        onEnded: @escaping (UILongPressGestureRecognizer, CGSize) -> Void = { _, _ in }
+    ) {
+        self.onBegan = onBegan
+        self.onChanged = onChanged
+        self.onEnded = onEnded
+    }
+    
+    func makeUIGestureRecognizer(context: Context) -> UILongPressGestureRecognizer {
+        let gestureRecognizer = UILongPressGestureRecognizer()
+        gestureRecognizer.minimumPressDuration = 0.0
+        gestureRecognizer.allowableMovement = CGFloat.greatestFiniteMagnitude
+        gestureRecognizer.delegate = context.coordinator
+        return gestureRecognizer
+    }
+    
+    func handleUIGestureRecognizerAction(_ recognizer: UILongPressGestureRecognizer, context: Context) {
+        switch recognizer.state {
+        case .began:
+            context.coordinator.startLocation = recognizer.location(in: recognizer.view)
+            onBegan(recognizer)
+        
+        case .changed:
+            let location = recognizer.location(in: recognizer.view)
+            let translation = CGSize(
+                width: location.x - context.coordinator.startLocation.x,
+                height: location.y - context.coordinator.startLocation.y
+            )
+            onChanged(recognizer, translation)
+        
+        case .ended, .cancelled:
+            let location = recognizer.location(in: recognizer.view)
+            let translation = CGSize(
+                width: location.x - context.coordinator.startLocation.x,
+                height: location.y - context.coordinator.startLocation.y
+            )
+            context.coordinator.startLocation = .zero
+            onEnded(recognizer, translation)
+        
+        default:
+            break
+        }
+    }
+    
+    func updateUIGestureRecognizer(_ recognizer: UILongPressGestureRecognizer, context: Context) {
+        // No updates needed
+    }
+    
+    func makeCoordinator(converter: CoordinateSpaceConverter) -> Coordinator {
+        Coordinator()
+    }
+    
+    class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        var startLocation: CGPoint = .zero
+        
+        func gestureRecognizer(
+            _ recognizer: UIGestureRecognizer,
+            shouldRecognizeSimultaneouslyWith otherRecognizer: UIGestureRecognizer
+        ) -> Bool {
+            return true
+        }
+    }
+}
+
+
+
+
+
 
 @available(iOS 14.0, OSX 11.0, *)
 // MARK: - Receive Timer
