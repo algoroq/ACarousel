@@ -260,6 +260,7 @@ extension ACarouselViewModel {
 extension ACarouselViewModel {
     
     
+    /// fix iOS 26 simultaneous gesture: https://stackoverflow.com/a/79768461
     func applyDragGesture<Content: View>(content: Content) -> any View {
         switch self.gestureRecognizer {
         case .simple:
@@ -271,34 +272,12 @@ extension ACarouselViewModel {
                     onEnded: handleSwipeEnded
                 ))
             } else {
-                return content.simultaneousGesture(DragGesture().onChanged(handleDragChanged).onEnded(handleDragEnded))
+                return content.simultaneousGesture(DragGesture().onChanged(handleDragChanged).onEnded(handleDragEnded), including: mask)
             }
         case let .highPriority(mask):
-            return content.highPriorityGesture(DragGesture().onChanged(handleDragChanged).onEnded(handleDragEnded))
+            return content.highPriorityGesture(DragGesture().onChanged(handleDragChanged).onEnded(handleDragEnded), including: mask)
         }
     }
-    
-    /*
-    /// drag gesture of view
-    var dragGesture: ACarouselGesture {
-        /*
-        DragGesture()
-            .onChanged(dragChanged)
-            .onEnded(dragEnded)
-         */
-        
-        if #available(iOS 18, *) {
-            return SimultaneousSwipeGesture(
-                onChanged: handleSwipeChanged,
-                onEnded: handleSwipeEnded
-            )
-        } else {
-            return .gesture(DragGesture()
-                .onChanged(handleDragChanged)
-                .onEnded(handleDragEnded))
-        }
-    }
-     */
     
     
     private func handleSwipeChanged(_ recognizer: UILongPressGestureRecognizer, _ translation: CGSize) {
