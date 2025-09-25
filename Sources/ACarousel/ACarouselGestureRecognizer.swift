@@ -62,7 +62,7 @@ public enum ACarouselGestureRecognizer {
 }
 
 @available(iOS 14.0, OSX 11.0, *)
-struct ACarouselGestureRecognizerModifier<Data, ID>: ViewModifier where Data : RandomAccessCollection, ID : Hashable  {
+struct ACarouselGestureRecognizerModifier: ViewModifier {
     
     var gestureRecognizer: ACarouselGestureRecognizer
     var gesture: ACarouselGesture

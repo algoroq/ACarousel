@@ -53,7 +53,10 @@ public struct ACarousel<Data, ID, Content, Suspending> : View where Data : Rando
             gestureRecognizer: viewModel.gestureRecognizer,
             gesture: viewModel.dragGesture))
          */
-        .modifier(ACarouselGestureRecognizerModifier(model: viewModel))
+        .modifier(ACarouselGestureRecognizerModifier(
+            gestureRecognizer: viewModel.gestureRecognizer,
+            gesture: viewModel.gesture
+        ))
         .animation(viewModel.offsetAnimation, value: viewModel.offset)
         .onReceive(timer: viewModel.timer, perform: viewModel.receiveTimer)
         .onReceiveAppLifeCycle(perform: viewModel.setTimerActive)
